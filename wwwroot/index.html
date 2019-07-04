@@ -1,0 +1,60 @@
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Demo</title>
+</head>
+
+<body>
+    <div id="app">
+        <p v-for="item in msgs">{{item}}</p>
+    </div>
+</body>
+
+<script src="node_modules/@aspnet/signalr/dist/browser/signalr.js"></script>
+<script src="https://cdn.bootcss.com/vue/2.6.9/vue.min.js"></script>
+<script src="https://cdn.bootcss.com/axios/0.18.0/axios.min.js"></script>
+
+<script>
+    var vm = new Vue({
+        el: "#app",
+        data() {
+            return {
+                connection: {},
+                msgs: []
+            }
+        },
+        methods: {
+            async send() {
+                var res = await axios.post(`api/send/${this.toId}/test`, {
+                    message: this.msg
+                })
+                console.log(res);
+            }
+        },
+        async mounted() {
+            var groupid = new Date().toISOString()
+            this.msgs.push("我的groupId：" + groupid)
+            console.log(groupid);
+            this.connection = await new signalR.HubConnectionBuilder()
+                .withUrl(`message?groupid=${groupid}`)
+                .configureLogging(signalR.LogLevel.Warning)
+                .build();
+
+            await this.connection.start();
+            console.log("connected");
+
+            this.msgs.push(new Date().toISOString() + " -- 成功建立链接")
+
+            var that = this;
+            this.connection.on("test", msg => {
+                that.msgs.push(new Date().toISOString() + " -- 接收到消息：" + msg)
+            })
+        },
+    });
+
+</script>
+
+</html>
